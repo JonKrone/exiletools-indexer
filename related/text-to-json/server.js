@@ -209,16 +209,33 @@ function parseItem(text, league) {
     return(item);
 
   // // NOTE: Flasks
-  // } else if (infoArray.includes('Right click to drink. Can only hold charges while in belt. Refills as you kill monsters.')) {
+  } else if (infoArray.includes('Right click to drink. Can only hold charges while in belt. Refills as you kill monsters.')) {
   //   debugLog('found a flask!', infoArray);
 
-  //   item.attributes.itemType = "Flask" //itemNames[itemName];
-  //   item.attributes.equipType = "Flask" //equipTypes[itemName];
-  //   item.attributes.baseItemType = "Flask" //itemTypes[item.attributes.itemType];
+    // If it has a note, remove that
+    if (infoArray[infoArray.length-1].match(/^Note/)) {
+      infoArray.pop();
+    }
 
-  //   debugLog('flask before properties:', item);
-  //   writeProperties(item, infoArray);
-  //   debugLog('flask with properties:', item);
+    // If it's Unique, remove the flavor text
+    if (item.attributes.rarity == "Unique") {
+      infoArray.pop();
+    }
+
+    item.attributes.itemType = "Flask";
+    item.attributes.equipType = "Flask" // equipTypes does not have information for Flasks.
+    item.attributes.baseItemType = "Flask";
+
+    writeProperties(item, infoArray);
+
+    const modInfo = getModInfo(infoArray);
+    writeMods(item, modInfo);
+
+
+    debugLog('Flask:', item);
+
+
+    return item;
 
   // NORMAL rarity detection
   } else if (item.attributes.rarity == 'Normal') {
@@ -237,10 +254,6 @@ function parseItem(text, league) {
         if (item.attributes.baseItemType === 'Weapon') {
           writeDPS(item);
         }
-      }
-
-      if (item.attributes.baseItemType === 'Flask') {
-        writeProperties(item, infoArray);
       }
 
       const modInfo = getModInfo(infoArray);
@@ -288,6 +301,7 @@ function parseItem(text, league) {
           writeDPS(item);
         }
       }
+
       const modInfo = getModInfo(infoArray);
       writeMods(item, modInfo);
     } else {
@@ -299,8 +313,6 @@ function parseItem(text, league) {
 
   // Analyze Rare and Unique items that don't match any of the above
   } else if (item.attributes.rarity == "Rare" || item.attributes.rarity == "Unique") {
-    console.log("this item is rare or unique, trying to identify it " + nameArray[2]);
-
     // If it has a note, remove that
     if (infoArray[infoArray.length-1].match(/^Note/)) {
       infoArray.pop();
@@ -435,7 +447,6 @@ function writeProperties(item, infoArray) {
   // This means we have properties, so create pwx style properties from them
   debugLog('flask property list:', propertyList);
   if (propertyList[0] != /^Requirements:/) {
-    console.log('parsing properties for:', item.info.fullName);
     // check-safe - only Weapons and Armour have properties
     // if (!['Weapon', 'Armour'].includes(item.attributes.baseItemType)) return; 
 
@@ -582,7 +593,7 @@ function parseProperty(propDesc) {
 }
 
 // Extract the mods from @param infoArray, the clipboard text
-// @return [ mod text ]
+// @return [ [implicit mod text], [explicit mod 1, explicit mod 2, ..] ]
 function getModInfo(infoArray) {
   // Now we must attempt to parse mods. This isn't so easy, because the mods can
   // show up in various sections. Thus we need to first eliminate non mod data.
@@ -590,11 +601,12 @@ function getModInfo(infoArray) {
 
   const modInfo = [];
   infoArray.forEach(function(element) {
-    if ((!element.match(/:/)) && (!element.match(/^\"/))) {
+    if ((!element.match(/:/)) && (!element.match(/^\"/)) && (!element.match(/Right click to drink./))) {
       const theseMods = element.split('\n');
       modInfo.push(theseMods);
     }
   });
+
   return modInfo;
 }
 
@@ -611,7 +623,7 @@ function parseMinMaxAvg(dmgDesc) {
   };
 }
 
-// Still debating over whether Flasks are an entity unto their own or should be treated
+// Debating over whether Flasks are an entity unto their own or should be treated
 // in their respective rarity sections.
 function parseName(item, nameArray) {
   const rarity = item.attributes.rarity;
