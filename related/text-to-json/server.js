@@ -208,12 +208,24 @@ function parseItem(text, league) {
 
     return(item);
 
-  // NOTE: Flasks
+  // // NOTE: Flasks
+  // } else if (infoArray.includes('Right click to drink. Can only hold charges while in belt. Refills as you kill monsters.')) {
+  //   debugLog('found a flask!', infoArray);
+
+  //   item.attributes.itemType = "Flask" //itemNames[itemName];
+  //   item.attributes.equipType = "Flask" //equipTypes[itemName];
+  //   item.attributes.baseItemType = "Flask" //itemTypes[item.attributes.itemType];
+
+  //   debugLog('flask before properties:', item);
+  //   writeProperties(item, infoArray);
+  //   debugLog('flask with properties:', item);
 
   // NORMAL rarity detection
   } else if (item.attributes.rarity == 'Normal') {
+    const itemName = nameArray[1].includes('Superior')
+      ? nameArray[1].slice('Superior '.length)
+      : nameArray[1];
 
-    const itemName = nameArray[1];
     if (itemNames[itemName]) {
       item.attributes.itemType = itemNames[itemName];
       item.attributes.equipType = equipTypes[itemName];
@@ -225,6 +237,10 @@ function parseItem(text, league) {
         if (item.attributes.baseItemType === 'Weapon') {
           writeDPS(item);
         }
+      }
+
+      if (item.attributes.baseItemType === 'Flask') {
+        writeProperties(item, infoArray);
       }
 
       const modInfo = getModInfo(infoArray);
@@ -417,10 +433,11 @@ function writeProperties(item, infoArray) {
   item.properties = {};
   const propertyList = _.compact(infoArray[1].split(/\n/));
   // This means we have properties, so create pwx style properties from them
+  debugLog('flask property list:', propertyList);
   if (propertyList[0] != /^Requirements:/) {
     console.log('parsing properties for:', item.info.fullName);
     // check-safe - only Weapons and Armour have properties
-    if (!['Weapon', 'Armour'].includes(item.attributes.baseItemType)) return; 
+    // if (!['Weapon', 'Armour'].includes(item.attributes.baseItemType)) return; 
 
     item.properties[item.attributes.baseItemType] = {};
     propertyList.forEach(function(prop) {
@@ -592,6 +609,17 @@ function parseMinMaxAvg(dmgDesc) {
     max: maxDmg,
     avg: Math.round((minDmg + maxDmg) / 2),
   };
+}
+
+// Still debating over whether Flasks are an entity unto their own or should be treated
+// in their respective rarity sections.
+function parseName(item, nameArray) {
+  const rarity = item.attributes.rarity;
+  if (rarity === 'Normal') return nameArray[1];
+  else if (rarity === 'Magic') {}
+  else if (rarity === 'Rare' || rarity === 'Unique') {}
+
+  return null;
 }
 
 // Useful log pattern for debugging deeply nested Objects
