@@ -210,27 +210,47 @@ function parseItem(text, league) {
 
   // // NOTE: Flasks
   } else if (infoArray.includes('Right click to drink. Can only hold charges while in belt. Refills as you kill monsters.')) {
-  //   debugLog('found a flask!', infoArray);
-
+    // Here we parse Flasks of all rarities, so take care of Notes and flavor text
     // If it has a note, remove that
     if (infoArray[infoArray.length-1].match(/^Note/)) {
       infoArray.pop();
     }
 
-    // If it's Unique, remove the flavor text
+    // If it's Unique, remove the flavor text.
     if (item.attributes.rarity == "Unique") {
-      infoArray.pop();
+      // The flask-specific text 'Right click...' is the last item in the
+      // infoArray, so splice instead of pop.
+      infoArray.splice(infoArray.length - 2, 1);
     }
 
     item.attributes.itemType = "Flask";
-    item.attributes.equipType = "Flask" // equipTypes does not have information for Flasks.
+    // Flasks do not have an associated equipType in itemName-to-equipTypes
+    // Should we treat them as "Flask" equip types?
     item.attributes.baseItemType = "Flask";
 
     writeProperties(item, infoArray);
 
+    const flaskPropertyImplicits = getFlaskPropertyImplicits(infoArray);
     const modInfo = getModInfo(infoArray);
+    debugLog('Flask implicits:', flaskPropertyImplicits);
+
+    if (flaskPropertyImplicits.length) {
+      if (modInfo.length === 2) {
+        // if there is also an implicit, join the two sources of implicits
+        modInfo[0] = modInfo[0].concat(flaskPropertyImplicits);
+      } else {
+        modInfo.unshift(flaskPropertyImplicits);
+      }
+    }
+
     writeMods(item, modInfo);
 
+    function getFlaskPropertyImplicits(infoArray) {
+      const propertyList = _.compact(infoArray[1].split(/\n/));
+      return propertyList.filter(function(property) {
+        return !property.match(/^Recovers|^Consumes|^Lasts|^Currently|^Quality/)
+      });
+    }
 
     debugLog('Flask:', item);
 
@@ -445,7 +465,6 @@ function writeProperties(item, infoArray) {
   item.properties = {};
   const propertyList = _.compact(infoArray[1].split(/\n/));
   // This means we have properties, so create pwx style properties from them
-  debugLog('flask property list:', propertyList);
   if (propertyList[0] != /^Requirements:/) {
     // check-safe - only Weapons and Armour have properties
     // if (!['Weapon', 'Armour'].includes(item.attributes.baseItemType)) return; 
@@ -524,6 +543,8 @@ function writeMods(item, modInfo) {
   item.mods = {};
   item.mods[itemType] = {};
   item.modsTotal = {};
+
+  debugLog('writeMods modInfo:', modInfo);
 
   // TODO: Determine implicit/explicit mod type of Magic items with only one mod 
   // Right now, all magic item mods are interpreted as explicit mods.
