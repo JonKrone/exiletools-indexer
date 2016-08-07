@@ -208,7 +208,7 @@ function parseItem(text, league) {
 
     return(item);
 
-  // // NOTE: Flasks
+  // NOTE: Flasks
   } else if (infoArray.includes('Right click to drink. Can only hold charges while in belt. Refills as you kill monsters.')) {
     // Here we parse Flasks of all rarities, so take care of Notes and flavor text
     // If it has a note, remove that
@@ -232,7 +232,6 @@ function parseItem(text, league) {
 
     const flaskPropertyImplicits = getFlaskPropertyImplicits(infoArray);
     const modInfo = getModInfo(infoArray);
-    debugLog('Flask implicits:', flaskPropertyImplicits);
 
     if (flaskPropertyImplicits.length) {
       if (modInfo.length === 2) {
@@ -244,16 +243,6 @@ function parseItem(text, league) {
     }
 
     writeMods(item, modInfo);
-
-    function getFlaskPropertyImplicits(infoArray) {
-      const propertyList = _.compact(infoArray[1].split(/\n/));
-      return propertyList.filter(function(property) {
-        return !property.match(/^Recovers|^Consumes|^Lasts|^Currently|^Quality/)
-      });
-    }
-
-    debugLog('Flask:', item);
-
 
     return item;
 
@@ -544,8 +533,6 @@ function writeMods(item, modInfo) {
   item.mods[itemType] = {};
   item.modsTotal = {};
 
-  debugLog('writeMods modInfo:', modInfo);
-
   // TODO: Determine implicit/explicit mod type of Magic items with only one mod 
   // Right now, all magic item mods are interpreted as explicit mods.
   // Not sure how to do this / if it is possible
@@ -622,7 +609,7 @@ function getModInfo(infoArray) {
 
   const modInfo = [];
   infoArray.forEach(function(element) {
-    if ((!element.match(/:/)) && (!element.match(/^\"/)) && (!element.match(/Right click to drink./))) {
+    if (!element.match(/:|^\"|Right click to drink.|Recovers|Consumes|Currently/)) {
       const theseMods = element.split('\n');
       modInfo.push(theseMods);
     }
@@ -642,6 +629,15 @@ function parseMinMaxAvg(dmgDesc) {
     max: maxDmg,
     avg: Math.round((minDmg + maxDmg) / 2),
   };
+}
+
+// Filters a list of properties on a flask to convert to implicit mods.
+// e.g.: 'Onslaught' or 'Your critical strike chance is lucky'
+function getFlaskPropertyImplicits(infoArray) {
+  const propertyList = _.compact(infoArray[1].split(/\n/));
+  return propertyList.filter(function(property) {
+    return !property.match(/^Recovers|^Consumes|^Lasts|^Currently|^Quality/)
+  });
 }
 
 // Debating over whether Flasks are an entity unto their own or should be treated
